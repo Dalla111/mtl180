@@ -156,8 +156,8 @@
         import { getFirestore, collection, getDocs, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- CONFIG ---
-        // --- CONFIG ---
-const firebaseConfig = __FIREBASE_CONFIG__; // This will be replaced by Cloudflare
+// This line reads the configuration securely injected by the _middleware.js file.
+const firebaseConfig = window.firebaseConfig;
         const appId = 'mtl180-course-app';
 
         // --- INITIALIZATION ---
@@ -416,3 +416,4 @@ const firebaseConfig = __FIREBASE_CONFIG__; // This will be replaced by Cloudfla
     </script>
 </body>
 </html>
+
