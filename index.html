@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTL180: Discrete Mathematical Structures</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            scroll-behavior: smooth;
+        }
+        .font-serif {
+            font-family: 'Lora', serif;
+        }
+        .folder-card {
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+        }
+        .folder-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+        .result-item, .file-item, .history-item, .announcement-item {
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+            border-left: 4px solid transparent;
+        }
+        .result-item:hover, .file-item:hover, .history-item:hover, .announcement-item:hover {
+            background-color: #f1f5f9; /* slate-100 */
+            border-left-color: #4f46e5; /* indigo-600 */
+        }
+        .loader-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 50vh;
+        }
+        .loader {
+            border: 5px solid #e2e8f0; /* slate-200 */
+            border-radius: 50%;
+            border-top: 5px solid #4f46e5; /* indigo-600 */
+            width: 50px;
+            height: 50px;
+            animation: spin 1.5s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .view {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .view.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Notification dot */
+        .notification-dot {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 8px;
+            background-color: #ef4444; /* red-500 */
+            border-radius: 50%;
+            border: 1px solid white;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- Header Section -->
+    <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-indigo-600 font-serif">MTL180</h1>
+                <p class="text-sm text-slate-500 hidden md:block">Discrete Mathematical Structures</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                 <button id="back-to-folders" class="hidden bg-indigo-500 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-600 flex items-center space-x-2 transition-all duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                    <span>Back</span>
+                </button>
+                 <div class="relative">
+                    <button id="notification-btn" class="bg-slate-100 text-slate-700 p-2 rounded-full hover:bg-slate-200 transition-colors relative">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                        <span id="notification-dot" class="notification-dot hidden"></span>
+                    </button>
+                    <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-md shadow-lg overflow-hidden ring-1 ring-black ring-opacity-5 z-50">
+                        <div class="p-4 font-semibold border-b">Announcements</div>
+                        <div id="announcement-list" class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                            <!-- Announcements will be injected here -->
+                        </div>
+                    </div>
+                </div>
+                 <div class="relative">
+                    <button id="history-btn" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 flex items-center space-x-2 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span>History</span>
+                    </button>
+                    <div id="history-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden ring-1 ring-black ring-opacity-5 z-50">
+                        <div class="p-4 font-semibold border-b">Recently Visited</div>
+                        <div id="history-list" class="divide-y divide-slate-100 max-h-96 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-4 md:p-8">
+        
+        <div id="loader" class="loader-container">
+            <div class="loader"></div>
+            <p id="loader-message" class="mt-4 text-slate-500">Loading course materials...</p>
+        </div>
+
+        <div id="folders-view" class="view">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl md:text-5xl font-bold font-serif mb-2">Course Materials</h2>
+                <p class="text-lg text-slate-600 max-w-2xl mx-auto">All the resources you need, organized and searchable.</p>
+            </div>
+            <div class="mb-8 max-w-2xl mx-auto">
+                 <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg></div>
+                    <input type="text" id="search-input" placeholder="Search for folders or files..." class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-full bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm shadow-sm">
+                </div>
+            </div>
+            <div id="folders-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"></div>
+            <div id="search-results" class="hidden bg-white rounded-lg shadow-md overflow-hidden divide-y divide-slate-100"></div>
+            <p id="no-results-message" class="text-center text-slate-500 mt-8 hidden">No matching folders or files found.</p>
+        </div>
+
+        <div id="files-view" class="view">
+            <h2 class="text-3xl md:text-4xl font-bold font-serif mb-6">Files in <span id="current-folder-name" class="text-indigo-600"></span></h2>
+            <div id="files-list" class="bg-white rounded-lg shadow-md overflow-hidden divide-y divide-slate-100"></div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-8 mt-12 border-t border-slate-200">
+        <p class="text-slate-500">&copy; 2024 MTL180 Course. All Rights Reserved.</p>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- CONFIG ---
+        // --- CONFIG ---
+const firebaseConfig = __FIREBASE_CONFIG__; // This will be replaced by Cloudflare
+        const appId = 'mtl180-course-app';
+
+        // --- INITIALIZATION ---
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- DOM ELEMENTS ---
+        const ui = {
+            loader: document.getElementById('loader'),
+            loaderMessage: document.getElementById('loader-message'),
+            foldersView: document.getElementById('folders-view'),
+            filesView: document.getElementById('files-view'),
+            foldersGrid: document.getElementById('folders-grid'),
+            filesList: document.getElementById('files-list'),
+            currentFolderName: document.getElementById('current-folder-name'),
+            backButton: document.getElementById('back-to-folders'),
+            searchInput: document.getElementById('search-input'),
+            searchResults: document.getElementById('search-results'),
+            noResultsMessage: document.getElementById('no-results-message'),
+            historyBtn: document.getElementById('history-btn'),
+            historyDropdown: document.getElementById('history-dropdown'),
+            historyList: document.getElementById('history-list'),
+            notificationBtn: document.getElementById('notification-btn'),
+            notificationDot: document.getElementById('notification-dot'),
+            notificationDropdown: document.getElementById('notification-dropdown'),
+            announcementList: document.getElementById('announcement-list'),
+        };
+        
+        let allCourseData = [];
+
+        // --- UI & VIEW MANAGEMENT ---
+        const showView = (viewName) => {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewName).classList.add('active');
+            ui.backButton.classList.toggle('hidden', viewName !== 'files-view');
+        };
+
+        // --- HISTORY MANAGEMENT ---
+        const getHistory = () => JSON.parse(localStorage.getItem('mtl180History')) || [];
+        const addToHistory = (file, parentFolder) => {
+            let history = getHistory();
+            const historyItem = { name: file.name, link: file.link, parentName: parentFolder.name };
+            history = history.filter(item => item.link !== historyItem.link);
+            history.unshift(historyItem);
+            if (history.length > 10) history.pop();
+            localStorage.setItem('mtl180History', JSON.stringify(history));
+            renderHistory();
+        };
+
+        const renderHistory = () => {
+            const history = getHistory();
+            ui.historyList.innerHTML = '';
+            if (history.length === 0) {
+                ui.historyList.innerHTML = `<p class="p-4 text-sm text-slate-500">No recently visited files.</p>`;
+                return;
+            }
+            history.forEach(item => {
+                const historyEl = document.createElement('a');
+                historyEl.href = item.link;
+                historyEl.target = '_blank';
+                historyEl.rel = 'noopener noreferrer';
+                historyEl.className = 'history-item p-4 flex items-center justify-between space-x-4 cursor-pointer';
+                historyEl.innerHTML = `<div class="flex items-center space-x-3 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg><div><p class="font-medium text-slate-700 truncate">${item.name}</p><p class="text-xs text-slate-500">in ${item.parentName}</p></div></div>`;
+                ui.historyList.appendChild(historyEl);
+            });
+        };
+        
+        // --- ANNOUNCEMENT MANAGEMENT ---
+        const getReadAnnouncements = () => JSON.parse(localStorage.getItem('mtl180ReadAnnouncements')) || [];
+        
+        const markAnnouncementsAsRead = (announcements) => {
+            const announcementIds = announcements.map(a => a.id);
+            localStorage.setItem('mtl180ReadAnnouncements', JSON.stringify(announcementIds));
+            ui.notificationDot.classList.add('hidden');
+        };
+
+        const renderAnnouncements = (announcements) => {
+            ui.announcementList.innerHTML = '';
+            if (announcements.length === 0) {
+                ui.announcementList.innerHTML = `<p class="p-4 text-sm text-slate-500">No new announcements.</p>`;
+                return;
+            }
+            
+            const readIds = getReadAnnouncements();
+            const hasUnread = announcements.some(a => !readIds.includes(a.id));
+            ui.notificationDot.classList.toggle('hidden', !hasUnread);
+
+            announcements.sort((a, b) => b.timestamp.seconds - a.timestamp.seconds); // Show newest first
+
+            announcements.forEach(announcement => {
+                const announcementEl = document.createElement('div');
+                announcementEl.className = 'announcement-item p-4';
+                const date = new Date(announcement.timestamp.seconds * 1000).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                announcementEl.innerHTML = `
+                    <p class="font-semibold text-slate-800">${announcement.text}</p>
+                    <p class="text-xs text-slate-500 mt-1">${date}</p>
+                `;
+                ui.announcementList.appendChild(announcementEl);
+            });
+        };
+
+        const listenForAnnouncements = () => {
+            const announcementsRef = collection(db, `artifacts/${appId}/public/data/mtl180_announcements`);
+            onSnapshot(announcementsRef, (snapshot) => {
+                const announcements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAnnouncements(announcements);
+            });
+        };
+
+        // --- DATA RENDERING ---
+        const renderFolders = (folders) => {
+            ui.foldersGrid.innerHTML = '';
+            folders.sort((a,b) => a.name.localeCompare(b.name)).forEach(folder => {
+                const folderEl = document.createElement('div');
+                folderEl.className = 'folder-card bg-white p-6 rounded-xl shadow-md cursor-pointer flex flex-col items-center text-center';
+                folderEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-indigo-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg><h3 class="font-bold text-lg text-slate-700">${folder.name}</h3>`;
+                folderEl.addEventListener('click', () => renderFilesView(folder));
+                ui.foldersGrid.appendChild(folderEl);
+            });
+        };
+
+        const renderFilesView = (folder) => {
+            ui.currentFolderName.textContent = folder.name;
+            ui.filesList.innerHTML = '';
+            if (!folder.files || folder.files.length === 0) {
+                ui.filesList.innerHTML = `<p class="p-8 text-center text-slate-500">There are no files in this folder yet.</p>`;
+            } else {
+                folder.files.sort((a,b) => a.name.localeCompare(b.name)).forEach((file) => {
+                    const fileEl = document.createElement('a');
+                    fileEl.href = file.link;
+                    fileEl.target = '_blank';
+                    fileEl.rel = 'noopener noreferrer';
+                    fileEl.className = `file-item p-4 flex items-center justify-between space-x-4`;
+                    fileEl.innerHTML = `<div class="flex items-center space-x-4 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg><span class="font-medium text-slate-700 truncate">${file.name}</span></div><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>`;
+                    fileEl.addEventListener('click', () => addToHistory(file, folder));
+                    ui.filesList.appendChild(fileEl);
+                });
+            }
+            showView('files-view');
+        };
+
+        // --- SEARCH & FILTER LOGIC ---
+        const renderSearchResults = (results) => {
+            ui.searchResults.innerHTML = '';
+            ui.noResultsMessage.classList.toggle('hidden', results.length > 0);
+            results.forEach(result => {
+                const resultEl = document.createElement('a');
+                resultEl.className = 'result-item p-4 flex items-center justify-between space-x-4 cursor-pointer';
+                if (result.type === 'folder') {
+                    resultEl.href = '#';
+                    resultEl.addEventListener('click', (e) => { e.preventDefault(); renderFilesView(result); });
+                    resultEl.innerHTML = `<div class="flex items-center space-x-4 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg><span class="font-medium text-slate-700 truncate">${result.name}</span></div><span class="text-sm text-slate-400">Folder</span>`;
+                } else {
+                    resultEl.href = result.link;
+                    resultEl.target = '_blank';
+                    resultEl.rel = 'noopener noreferrer';
+                    resultEl.addEventListener('click', () => addToHistory(result, {name: result.parentName}));
+                    resultEl.innerHTML = `<div class="flex items-center space-x-4 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg><div><p class="font-medium text-slate-700 truncate">${result.name}</p><p class="text-sm text-slate-500">in ${result.parentName}</p></div></div><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>`;
+                }
+                ui.searchResults.appendChild(resultEl);
+            });
+        };
+
+        const handleSearch = (query) => {
+            const lowerCaseQuery = query.toLowerCase().trim();
+            if (!lowerCaseQuery) {
+                ui.searchResults.classList.add('hidden');
+                ui.foldersGrid.classList.remove('hidden');
+                ui.noResultsMessage.classList.add('hidden');
+                return;
+            }
+            ui.foldersGrid.classList.add('hidden');
+            ui.searchResults.classList.remove('hidden');
+            const results = [];
+            allCourseData.forEach(folder => {
+                if (folder.name.toLowerCase().includes(lowerCaseQuery)) results.push({ type: 'folder', ...folder });
+                folder.files.forEach(file => {
+                    if (file.name.toLowerCase().includes(lowerCaseQuery)) results.push({ type: 'file', ...file, parentName: folder.name });
+                });
+            });
+            renderSearchResults(results);
+        };
+
+        // --- INITIAL DATA LOAD ---
+        const loadInitialData = async () => {
+            const loadingTimeout = setTimeout(() => {
+                ui.loaderMessage.innerHTML = 'Still loading... The database might be slow or there could be a connection issue. <br>Please ensure your Firestore security rules are set correctly.';
+            }, 10000); // 10 seconds
+
+            try {
+                const foldersRef = collection(db, `artifacts/${appId}/public/data/mtl180_folders`);
+                const foldersSnapshot = await getDocs(foldersRef);
+                const folderPromises = foldersSnapshot.docs.map(async (folderDoc) => {
+                    const folderData = { id: folderDoc.id, ...folderDoc.data(), files: [] };
+                    const filesRef = collection(db, doc(foldersRef, folderDoc.id).path, 'files');
+                    const filesSnapshot = await getDocs(filesRef);
+                    folderData.files = filesSnapshot.docs.map(fileDoc => ({ id: fileDoc.id, ...fileDoc.data() }));
+                    return folderData;
+                });
+                allCourseData = await Promise.all(folderPromises);
+                
+                clearTimeout(loadingTimeout); // Success, so clear the timeout
+                renderFolders(allCourseData);
+                ui.loader.classList.add('hidden');
+                showView('folders-view');
+
+            } catch (error) {
+                clearTimeout(loadingTimeout); // Clear timeout on error too
+                console.error("CRITICAL ERROR fetching initial data:", error);
+                ui.loader.innerHTML = `<div class="text-center text-red-600"><p class="font-bold text-lg mb-2">Failed to Load Course Data</p><p class="text-sm">This is likely due to a Firestore security rule issue. Please ensure your rules allow public read access.</p><p class="mt-4 text-xs font-mono bg-red-100 p-2 rounded">Error: ${error.message}</p></div>`;
+            }
+        };
+
+        // --- EVENT LISTENERS ---
+        ui.backButton.addEventListener('click', () => {
+            showView('folders-view');
+            handleSearch(ui.searchInput.value);
+        });
+        ui.searchInput.addEventListener('input', (e) => handleSearch(e.target.value));
+        
+        // Dropdown Logic
+        const setupDropdown = (btn, dropdown) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Close other dropdowns
+                if (dropdown.id === 'history-dropdown') ui.notificationDropdown.classList.add('hidden');
+                else ui.historyDropdown.classList.add('hidden');
+                
+                dropdown.classList.toggle('hidden');
+            });
+        };
+        setupDropdown(ui.historyBtn, ui.historyDropdown);
+        setupDropdown(ui.notificationBtn, ui.notificationDropdown);
+
+        document.addEventListener('click', (e) => {
+            if (!ui.historyDropdown.contains(e.target) && !ui.historyBtn.contains(e.target)) {
+                ui.historyDropdown.classList.add('hidden');
+            }
+            if (!ui.notificationDropdown.contains(e.target) && !ui.notificationBtn.contains(e.target)) {
+                ui.notificationDropdown.classList.add('hidden');
+            }
+        });
+        
+        ui.notificationBtn.addEventListener('click', () => {
+            const announcementsRef = collection(db, `artifacts/${appId}/public/data/mtl180_announcements`);
+            getDocs(announcementsRef).then(snapshot => {
+                const announcements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                markAnnouncementsAsRead(announcements);
+            });
+        });
+
+        // Start the app
+        renderHistory();
+        listenForAnnouncements();
+        loadInitialData();
+    </script>
+</body>
+</html>
